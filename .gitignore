@@ -1,0 +1,5 @@
+.c*
+__pycache__/
+*venv*/
+
+data/
