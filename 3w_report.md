@@ -19,8 +19,8 @@ We computed the conditional **SWD / MMD / FD** distances (per class, active feat
 ## Stage 3: Synthetic Data Generation
 
 The experiment asks **how much labeled target data a CVAE generator needs** and whether synthetic data beats simply using the few real target examples. It runs on two pairs:
-- W1 $\to$ W5 (baseline penalty 0.726) 
-- {W4,W5} $\to$ {W1,W2} (baseline penalty 0.598)
+- W1 $\to$ W5 (baseline penalty 0.726), only 130 samples in the source and 59 in the target
+- {W4,W5} $\to$ {W1,W2} (baseline penalty 0.598), larger source pool with 174 samples in the source and 226 in the target.
 
 Both on classes {0, 4}. Comparing per budget N: source-only, +N real, +N budget-only CVAE (trained only on N target instances), +N synthetic (source-pretrained + budget-finetuned CVAE), and +5N/+10N amplification control for the +N synthetic. Then, penalty is plotted against training set size, and then measuring the conditional SWD/FD/MMD to the target test set. The results show:
 
