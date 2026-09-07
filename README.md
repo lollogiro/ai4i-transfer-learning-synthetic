@@ -19,7 +19,7 @@ Two questions frame every experiment:
 
 ## Report
 
-**`final_report.md`** is the single project report. It contains the datasets' description, the shared methodology, the domain definitions and source-target pairs, the
+**`final_report.pdf`** is the single project report. It contains the datasets' description, the shared methodology, the domain definitions and source-target pairs, the
 main results and the limitations of the study.
 
 ## Datasets
@@ -28,7 +28,7 @@ main results and the limitations of the study.
 |---|---|---|---|---|
 | **3W** (Vargas et al., 2019) | Offshore oil & gas wells - rare-event classification | 8 process variables | 9 (normal + 8 failure modes) | 1,984 instances (whole events), 1 Hz |
 | **MetroPT-3** | Urban metro Air Production Unit - predictive maintenance | 15 (7 analog + 8 digital) | raw unlabeled, annotated *Air Leak* faults | continuous time series (1 row/s) |
-| **SCANIA Component X** | TODO | TODO | TODO | TODO |
+| **SCANIA Component X** | Heavy-truck fleet - predictive maintenance of an anonymized engine component | counters + histogram sensors | binary (repair / no repair) | vehicles x time steps |
 | **Tennessee Eastman Process** | TODO | TODO | TODO | TODO |
 
 ### 3W
@@ -42,7 +42,7 @@ official data card, revealing four distinct **Air Leak** failure events (April-J
 
 ### SCANIA Component X
 
-TODO
+This dataset contains operational readouts and Time-To-Event (TTE) records for a fleet of heavy-duty commercial vehicles, targeting the predictive maintenance of an anonymized engine component ("Component X"). It is highly heterogeneous, mixing continuous sensor readings with complex multivariate **histogram** sensors (binned operational conditions accumulated over time) alongside technical vehicle specifications (e.g. chassis or load configurations, `Cat0-Cat2`). The target is binary (`in_study_repair`). The data is noisy and heavily imbalanced, normal operating conditions vastly outnumber actual failures, and the underlying distribution of identical sensors shifts with the vehicle configuration, so a single static model cannot generalize across the fleet.
 
 ### Tennessee Eastman Process
 
@@ -55,6 +55,7 @@ The project is organized by **stage folders** (one folder per pipeline stage). E
 ```
 README.md                          # This file
 final_report.md                    # Project report (methodology, results, limitations)
+final_report.pdf                   # " " "
 
 data/                              # Raw data, git-ignored
   ...
@@ -62,19 +63,18 @@ data/                              # Raw data, git-ignored
 stage1-data_exploration/           # Stage 1 - EDA / characterization (one notebook per dataset)
   3w_eda.ipynb                     #   3W EDA
   metropt3.ipynb                   #   MetroPT-3 EDA
-  TODO.ipynb                     #   SCANIA Component X EDA
+  scania.ipynb                     #   SCANIA Component X EDA
   TODO.ipynb                  #   Tennessee Eastman EDA
 
 stage2-transfer_learning/          # Stage 2 - domain distance + transfer penalty
   3w_dom_dist_tl.ipynb             #   3W: 3-pair qualitative picture + 20-pair distance $\longleftrightarrow$ penalty correlation
   metropt3.ipynb                   #   MetroPT-3: domain-distance analysis over 3 domain pairs + 27-pair seasonal correlation
-  TODO.ipynb                     #   SCANIA Component X distance + TL
+  scania.ipynb                     #   SCANIA Component X distance + TL
   TODO.ipynb                  #   Tennessee Eastman distance + TL
 
 stage3-synthetic_generation/       # Stage 3 - synthetic data generation (CVAE and/or CGAN)
   3w_generation.ipynb              #   3W: CVAE generation, from scratch/fine-tuning, and transfer learning tests with synthetic data over 2 source-target pairs
   metropt3_budget_sweep.ipynb      #   MetroPT-3: few-shot budget sweep over the seasonal (Spring vs Summer) gap
-  TODO.ipynb                     #   SCANIA Component X generation
   TODO.ipynb                  #   Tennessee Eastman generation
 ```
 
@@ -84,7 +84,7 @@ Raw data is **git-ignored** and lives in the `data/` folder at the repository ro
 
 - **3W**: `data/Data for A Realistic and Public Dataset with Rare Undesirable Real Events in Oil Wells/` (original 300 MB zip + extracted multi-part `data.7z.001-004`). The stage notebooks unpack the multi-part 7z archives automatically via `py7zr`. Download from Zenodo.
 - **MetroPT-3**: expected at `data/metropt3/MetroPT3(AirCompressor).csv`. Donwload from Kaggle.
-- **SCANIA Component X**: TODO
+- **SCANIA Component X**: raw CSVs (`train_operational_readouts.csv`, `train_specifications.csv`, `train_tte.csv`) expected directly in `data/`.
 - **Tennessee Eastman**: TODO
 
 ## Environment and notebooks
@@ -101,4 +101,4 @@ Raw data is **git-ignored** and lives in the `data/` folder at the repository ro
 - **Transfer penalty** = source CV macro-F1 - target macro-F1 (train on the source, test on the target), positive means loss.
 - **Correlation** of distance $\times$ penalty is quantified with Spearman / Kendall plus block-bootstrap confidence intervals.
 
-See `final_report.md` for the domain definitions, the source-target pairs, and the main results of each dataset.
+See `final_report.pdf` for the domain definitions, the source-target pairs, and the main results of each dataset.
