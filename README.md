@@ -27,7 +27,7 @@ main results and the limitations of the study.
 | Dataset | System / task | Signals | Classes | Units |
 |---|---|---|---|---|
 | **3W** (Vargas et al., 2019) | Offshore oil & gas wells - rare-event classification | 8 process variables | 9 (normal + 8 failure modes) | 1,984 instances (whole events), 1 Hz |
-| **MetroPT-3** | Urban metro Air Production Unit - predictive maintenance | 15 (7 analog + 8 digital) | raw unlabeled; annotated *Air Leak* faults | continuous time series (1 row/s) |
+| **MetroPT-3** | Urban metro Air Production Unit - predictive maintenance | 15 (7 analog + 8 digital) | raw unlabeled, annotated *Air Leak* faults | continuous time series (1 row/s) |
 | **SCANIA Component X** | TODO | TODO | TODO | TODO |
 | **Tennessee Eastman Process** | TODO | TODO | TODO | TODO |
 
@@ -37,8 +37,7 @@ Public dataset of rare undesirable events in oil and gas wells (Vargas et al., 2
 
 ### MetroPT-3
 
-Real-world predictive-maintenance data collected from an Air Production Unit (APU) operating on an urban metro train (DSAA 2021). It captures continuous multivariate sensor
-readings (pressure, temperature, motor current, etc.) during actual operation. The raw data is **entirely unlabeled**; we manually annotated it with the maintenance logs in the
+Real-world predictive-maintenance data collected from an Air Production Unit (APU) operating on an urban metro train. It captures continuous multivariate sensor readings (pressure, temperature, motor current, etc.) during actual operation. The raw data is **entirely unlabeled**. We manually annotated it with the maintenance logs in the
 official data card, revealing four distinct **Air Leak** failure events (April-July 2020). Normal operating data accounts for **> 98 %** of the dataset, so the methodology isolates the **anomalous datapoints** for the distance calculations (global metrics are overwhelmed by the massive class imbalance).
 
 ### SCANIA Component X
@@ -95,17 +94,11 @@ Raw data is **git-ignored** and lives in the `data/` folder at the repository ro
 
 ## Methodology (common to all datasets)
 
-- **Distances.** The **conditional shift** (per-class distance, averaged over the pair's
-  classes) in the classifier's feature space:
-  - **SWD** (Sliced Wasserstein) - mean of the 1-D Wasserstein distance over 50 random
-    projections.
-  - **MMD** (Maximum Mean Discrepancy) - RBF kernel, gamma = 0.1.
-  - **FD** (Fréchet Distance) - distance between the multivariate Gaussians fitted to the
-    two sets (covariance-regularized).
-- **Transfer penalty** = source CV macro-F1 − target macro-F1 (train on the source, test
-  on the target); positive means loss.
-- **Correlation** of distance × penalty is quantified with Spearman / Kendall plus
-  block-bootstrap confidence intervals.
+- **Distances.** The **conditional shift** (per-class distance, averaged over the pair's classes) in the classifier's feature space:
+  - **SWD** (Sliced Wasserstein): mean of the 1-D Wasserstein distance over 50 random projections.
+  - **MMD** (Maximum Mean Discrepancy): RBF kernel, gamma = 0.1.
+  - **FD** (Fréchet Distance): distance between the multivariate Gaussians fitted to the two sets (covariance-regularized).
+- **Transfer penalty** = source CV macro-F1 - target macro-F1 (train on the source, test on the target), positive means loss.
+- **Correlation** of distance $\times$ penalty is quantified with Spearman / Kendall plus block-bootstrap confidence intervals.
 
-See `final_report.md` for the domain definitions, the source-target pairs, and the main
-results of each dataset.
+See `final_report.md` for the domain definitions, the source-target pairs, and the main results of each dataset.
