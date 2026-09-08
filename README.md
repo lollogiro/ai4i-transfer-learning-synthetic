@@ -29,7 +29,7 @@ main results and the limitations of the study.
 | **3W** (Vargas et al., 2019) | Offshore oil & gas wells - rare-event classification | 8 process variables | 9 (normal + 8 failure modes) | 1,984 instances (whole events), 1 Hz |
 | **MetroPT-3** | Urban metro Air Production Unit - predictive maintenance | 15 (7 analog + 8 digital) | raw unlabeled, annotated *Air Leak* faults | continuous time series (1 row/s) |
 | **SCANIA Component X** | Heavy-truck fleet - predictive maintenance of an anonymized engine component | counters + histogram sensors | binary (repair / no repair) | vehicles x time steps |
-| **Tennessee Eastman Process** | TODO | TODO | TODO | TODO |
+| **Tennessee Eastman Process** | Chemical-process simulation benchmark - fault detection and diagnosis | 52 continuous process variables | 21 (1 normal + 20 faults) | 500 simulated runs/fault, 25-48 h series |
 
 ### 3W
 
@@ -46,7 +46,7 @@ This dataset contains operational readouts and Time-To-Event (TTE) records for a
 
 ### Tennessee Eastman Process
 
-TODO
+Simulation benchmark of a complex chemical production plant (Downs & Vogel, 1993; Rieth et al., 2017), widely used to evaluate fault-detection and diagnostic algorithms. It tracks **52 continuous process variables** (pressures, temperatures, flow rates, valve positions) over **21 operational classes** (1 normal + 20 fault mechanisms), with **500 independent simulation runs per fault** and complete temporal sequences (no missing values or frozen sensors). Faults are grouped by physical mechanism (step changes, random variations, slow kinetic drift, actuator stiction, unknown perturbations), which the transfer analysis exploits to build source-target pairs across physically aligned or disjoint mechanisms.
 
 ## Repository structure
 
@@ -64,18 +64,18 @@ stage1-data_exploration/           # Stage 1 - EDA / characterization (one noteb
   3w_eda.ipynb                     #   3W EDA
   metropt3.ipynb                   #   MetroPT-3 EDA
   scania.ipynb                     #   SCANIA Component X EDA
-  TODO.ipynb                  #   Tennessee Eastman EDA
+  Tennessee_EPS.ipynb               #   Tennessee Eastman EDA
 
 stage2-transfer_learning/          # Stage 2 - domain distance + transfer penalty
   3w_dom_dist_tl.ipynb             #   3W: 3-pair qualitative picture + 20-pair distance $\longleftrightarrow$ penalty correlation
   metropt3.ipynb                   #   MetroPT-3: domain-distance analysis over 3 domain pairs + 27-pair seasonal correlation
   scania.ipynb                     #   SCANIA Component X distance + TL
-  TODO.ipynb                  #   Tennessee Eastman distance + TL
+  Tennessee_EPS_2.ipynb             #   Tennessee Eastman distance + TL
 
 stage3-synthetic_generation/       # Stage 3 - synthetic data generation (CVAE and/or CGAN)
   3w_generation.ipynb              #   3W: CVAE generation, from scratch/fine-tuning, and transfer learning tests with synthetic data over 2 source-target pairs
   metropt3_budget_sweep.ipynb      #   MetroPT-3: few-shot budget sweep over the seasonal (Spring vs Summer) gap
-  TODO.ipynb                  #   Tennessee Eastman generation
+  Tennessee_EPS_3.ipynb             #   Tennessee Eastman generation
 ```
 
 ## Data
@@ -85,7 +85,7 @@ Raw data is **git-ignored** and lives in the `data/` folder at the repository ro
 - **3W**: `data/Data for A Realistic and Public Dataset with Rare Undesirable Real Events in Oil Wells/` (original 300 MB zip + extracted multi-part `data.7z.001-004`). The stage notebooks unpack the multi-part 7z archives automatically via `py7zr`. Download from Zenodo.
 - **MetroPT-3**: expected at `data/metropt3/MetroPT3(AirCompressor).csv`. Donwload from Kaggle.
 - **SCANIA Component X**: raw CSVs (`train_operational_readouts.csv`, `train_specifications.csv`, `train_tte.csv`) expected directly in `data/`.
-- **Tennessee Eastman**: TODO
+- **Tennessee Eastman**: four raw `.RData` files (`TEP_FaultFree_Training/Testing.RData`, `TEP_Faulty_Training/Testing.RData`) expected under `data/Tennessee_Eastman_Process_Simulation_Dataset/`; the notebooks parse them with `pyreadr` and cache the result to CSV in `processed_csv/`. Download from Kaggle.
 
 ## Environment and notebooks
 
