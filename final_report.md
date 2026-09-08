@@ -69,10 +69,10 @@ Domains in TEP are defined along physical disturbance mechanisms, cross-campaign
 ## Methodology (common across datasets)
 
 - **Base classifier**: Random Forest with trials over several seeds, reported as mean ± std.
-- **Distances**: SWD / MMD / FD, computed on the **conditional shift**, per class, over the class(es) each dataset's task focuses on — never on the whole population, whose heavy imbalance would mask the drift.
+- **Distances**: SWD / MMD / FD, computed on the **conditional shift**, per class, over the classes each dataset's task focuses on.
 - **Transfer penalty** = source CV macro-F1 - target macro-F1.
 - **Leakage control**: test/target never shares the same entity (well / vehicle / window) with training.
-- **Correlation distance $\times$ penalty** via Spearman/Kendall with 95% block-bootstrap CIs.
+- **Correlation distance $\times$ penalty** via Spearman $\tau$/Kendall $\rho$ with 95% block-bootstrap CIs.
 
 ## Stage 2: Domain Distance and Transfer Penalty
 
