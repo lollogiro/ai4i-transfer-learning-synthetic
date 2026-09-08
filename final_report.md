@@ -14,6 +14,10 @@ The MetroPT-3 dataset provides real-world predictive maintenance data collected 
 
 The SCANIA dataset consists of operational readouts and Time-To-Event (TTE) records for a fleet of heavy-duty commercial vehicles, targeting the predictive maintenance of a specific component (Component X). The dataset is highly heterogeneous, comprising both continuous sensor readings and complex multivariate histograms (binned operational conditions accumulated over time) alongside technical vehicle specifications (e.g., chassis or weight configurations categorized as Cat0, Cat1, Cat2). The primary challenge lies in predicting the `in_study_repair` target variable within an inherently noisy, heavily imbalanced industrial environment where normal operating conditions vastly outnumber actual failure events.
 
+### Tennessee Eastman Process (TEP)
+
+The Tennessee Eastman Process (TEP) dataset (Downs & Vogel, 1993; Rieth et al., 2017) is a widely established simulation benchmark of a complex chemical production plant. It tracks **52 continuous process variables** (pressures, temperatures, flow rates, and valve positions) sampled across **21 distinct operational classes** (1 normal state + 20 fault mechanisms). The dataset comprises 500 independent simulation runs per fault, featuring complete temporal sequences without missing values or frozen sensors. It is originally distributed across four RData files (fault_free_train/test and faulty_train/test), which differ in run length and fault injection timing: 500 samples (25h) with injection at sample 20 in training, 960 samples (48h) with injection at sample 160 in testing.
+
 ## Stage 1: Exploratory Data Analysis
 
 ### 3W
@@ -29,6 +33,11 @@ The raw MetroPT-3 dataset is entirely unlabeled. To perform supervised classific
 Our initial exploratory data analysis (EDA) characterized the severe class imbalance and complex temporal dynamics of the dataset. Using Mutual Information (MI), we identified the most informative sensors (e.g., features from families `158`, `167`, and `459`). However, correlation matrices revealed weak linear relationships with the target, indicating that physical degradation follows non-linear patterns.
 
 By inverting the temporal axis to represent a "countdown to failure" (Time-To-Event = 0), we visualized a clear global degradation trajectory: aggregated histogram bins (e.g., `total_exposure_167`) systematically accumulate as the component approaches the end of its useful life. Crucially, Kernel Density Estimation (KDE) plots stratified by vehicle specifications provided the first visual proof of severe Covariate Shift. The underlying statistical distribution of identical sensors drastically mutated depending on the vehicle's physical configuration (`Cat0` vs. `Cat1` vs. `Cat2`), validating the hypothesis that a single, static global model would inevitably fail.
+
+### Tennessee Eastman Process (TEP)
+
+Our exploratory analysis evaluated feature distributions, variable sensitivities, and temporal fault progression across all 52 process variables. By computing Z-score deviations against the normal baseline ($Z_{f,v} = (\mu_{f,v} - \mu_{\text{normal},v})/\sigma_{\text{normal},v}$), we identified key discriminative features characterizing the 20 failure modes across their physical mechanisms (step changes, random variations, kinetic drift, valve stiction, and unmodeled perturbations).
+Inspecting temporal trajectories of the training dataset revealed distinct onset behaviors across fault classes. Across 500 simulation runs, post-injection behavior varies significantly by fault mechanism: some variables settle into new steady states, others exhibit persistent oscillations, and key control parameters show sharp cross-run variance surges during plant stabilization. Cross-run consistency heatmaps revealed that nearly all tested faults show a sharp shift in process variability at the fault injection and remain highly reproducible across all 500 simulation runs. Finally, we revealed distinct static signatures across fault types, ranging from narrow interquartile ranges with localized outliers to heavily skewed distributions. To capture these distribution profiles, each time series was summarized using 4 sliding-window statistics (mean, std, min, max), yielding a 208-dimensional feature representation.
 
 ## Domains Definition
 
@@ -50,6 +59,13 @@ To move beyond a qualitative assessment and ensure a statistically robust evalua
 2. **Temporal Lifecycle Drift (Wear Level):** A quantile-based segmentation of the vehicles' maximum lifespan (Q1-Short, Q2-Medium Short, Q3-Medium, Q4-Long). Permuting these groups allowed us to simulate the physical drift between early (infant) failures and long-term wear-and-tear degradation.
 3. **Sanity Check (Placebo):** A randomized 50/50 split within a single, homogenous category (Cat0) to act as a rigorous control baseline, ensuring our geometric metrics report near-zero distances in the absence of true physical domain shift.
 
+### Tennessee Eastman Process (TEP)
+
+Domains in TEP are defined along physical disturbance mechanisms, cross-campaign splits, and diagnostic task regimes:
+
+1. **Binary Fault Detection Pairs (20 Domain Pairs):** Partitioned into 5 categories based on physical alignment: _Similar mechanisms_ (e.g., feed temperature shifts $F3 \to F9$), _Same subsystem_ (e.g., condenser thermal/valve $F5 \to F15$), _Unrelated mechanisms_ (e.g., chemical kinetics vs. actuator stiction $F4 \to F13$, $F6 \to F15$), _Coherent groups_ (pooled, physically aligned sources sharing target dynamics, such as $\{F3, F4\} \to F9$), and _Control group_ (orthogonal multi-source inputs transferred to an unrelated target, specifically $\{F1, F6\} \to F15$).
+2. **Multiclass Diagnostic Taxonomy (6 Physical Classes):** Grouped into 6 operational mechanism categories: Normal ($F0$), Step Disturbances ($F1 \dots F7$), Random Variations ($F8 \dots F12$), Slow Dynamic Drift ($F13$), Actuator Stiction ($F14 \dots F15$), and Unknown Perturbations ($F16 \dots F20$). Structured cross-mechanism pairs (8 pairs) simulate diagnostic transfer across distinct physical failure modes.
+
 ## Methodology (common across datasets)
 
 - **Base classifier**: Random Forest with trials over several seeds, reported as mean ± std.
@@ -66,7 +82,7 @@ Across the previously defined 20 source-target pairs, we observed a strong corre
 
 ### MetroPT-3
 
-For each of the three initial domain configurations (Component, Load, Seasonal), distances were computed on the anomalies only, in the raw 7-D analog sensor space. To formally quantify the correlation between distance and penalty, we leveraged the 4-month seasonal data. Since the seasonal shift naturally produced the largest distance and penalty, it provided an ideal testbed. We split the 4 months into smaller temporal windows and generated a total of 27 unique Source-Target permutations. Across these 27 pairs, we rigorously evaluated the rank correlation using **Spearman's $\rho$** and **Kendall's $\tau$** (with 95% Block-Bootstrap CIs, grouped by undirected pair families, directly matching the 3W methodology). We found strong, statistically significant correlations for **SWD** ($\rho=+0.751$ [+0.478, +0.893]; $\tau=+0.572$ [+0.348, +0.746]) and **FD** ($\rho=+0.760$ [+0.502, +0.894]; $\tau=+0.582$ [+0.380, +0.742]). Conversely, MMD exhibited a weaker correlation ($\rho=+0.359$ [-0.132, +0.702]), confirming that SWD and FD are much more reliable predictors of transfer degradation.
+For each of the three initial domain configurations (Component, Load, Seasonal), distances were computed on the anomalies only, in the raw 7-D analog sensor space. To formally quantify the correlation between distance and penalty, we leveraged the 4-month seasonal data. Since the seasonal shift naturally produced the largest distance and penalty, it provided an ideal testbed. We split the 4 months into smaller temporal windows and generated a total of 27 unique Source-Target permutations. We found strong, statistically significant correlations for **SWD** ($\rho=+0.751$ [+0.478, +0.893]; $\tau=+0.572$ [+0.348, +0.746]) and **FD** ($\rho=+0.760$ [+0.502, +0.894]; $\tau=+0.582$ [+0.380, +0.742]). Conversely, MMD exhibited a weaker correlation ($\rho=+0.359$ [-0.132, +0.702]), confirming that SWD and FD are much more reliable predictors of transfer degradation.
 
 Among the three primary, broad domain configurations, the **Spring $\rightarrow$ Summer** transition exhibited by far the most severe geometric distance and the highest transfer penalty (~54%), proving that environmental concept drift severely degrades predictive maintenance models. While some of the smaller, single-month permutations exhibited even more extreme distances and near-total transfer failure, we explicitly selected the broader Spring $\rightarrow$ Summer seasonal split as the primary focus for our generative synthetic experiments as the broader seasonal split guarantees a richer variance of normal states and provides a much larger dataset of anomalies to work with, establishing a rigorous and realistic industrial baseline.
 
@@ -79,6 +95,14 @@ After computing the block-bootstrap CIs, we observed the following results:
 - *Transfer learning failed asymmetrically*, indeed transferring knowledge from early-failure vehicles (Q1) to long-life vehicles (Q4) triggered massive penalties. In contrast, the reverse path (Q4 $\rightarrow$ Q1) showed higher tolerance, suggesting long-term degradation signatures subsume early-failure patterns.
 
 Unlike standard global metrics, we also integrated a 1D Wasserstein feature-sensitivity heatmap to provide explainability. When analyzing the severe drift between standard vehicles (`Cat0/1`) and `Cat2`, this technique mathematically isolated the aggregated histogram `total_exposure_291` (1D distance 7.24) and the continuous counters `370_0` and `100_0` as the absolute primary drivers of the concept drift, pinpointing exactly which sensors fail under configuration changes.
+
+### Tennessee Eastman Process (TEP)
+
+Geometric distances were computed on anomalous states in the 208-dimensional sliding-window feature space. Across the 20 binary source-target pairs, transfer evaluation using the primary Random Forest classifier confirmed a strong positive relationship between domain distance and transfer penalty. Correlation analysis with block-bootstrap 95% CIs yielded statistically significant positive predictive performance across all distance metrics: **SWD = +0.549 [95% CI: 0.141, 0.703]**, **MMD = +0.517 [95% CI: 0.143, 0.703]**, and **FD = +0.533 [95% CI: 0.094, 0.680]**.
+
+Transfer performance varied significantly by physical domain alignment: _Similar mechanism_ pairs (e.g., $F3 \to F9$) exhibited minimal distance ($\text{SWD} = 0.0668$, $\text{MMD} = 0.0019$) and low transfer penalty ($\text{penalty} = 0.2941$), with some pairs like $F9 \to F15$ and $F11 \to F14$ achieving near-zero transfer penalties ($\text{penalty} \approx 0.00$). In contrast, transfer across _Unrelated mechanisms_ (e.g., $F6 \to F15$, $\text{SWD} = 1.1761$, $\text{FD} = 518.48$) resulted in total classifier breakdown ($\text{penalty} = 1.0000$).
+
+Evaluating multiclass transfer across structured physical perturbation groups reveals a severe breakdown in cross-domain generalization. Across all evaluated domain pairs, despite strong in-domain Baseline Macro-F1, cross-domain transfer triggers massive performance degradation, with transfer penalties frequently exceeding $0.75$ and target Macro-F1 consistently dropping below $0.25$. This confirms that direct cross-domain diagnosis fails across physical mechanism boundaries without conditional alignment.
 
 ## Stage 3: Synthetic Data Generation
 
@@ -100,6 +124,13 @@ We performed a rigorous Multi-Seed Evaluation (`N_RUNS=3`) for every budget to g
 
 The CVAE bridges the seasonal gap from a tiny budget, while the CGAN doesn't. Amplifying a 5% real-anomaly budget (35 samples) with the CVAE cuts the Spring $\to$ Summer penalty from 75% to 13.6%, close to the only-real-target ceiling, while the CGAN collapses under data starvation. Across budgets the penalty tracks the conditional SWD to the target, mirroring the stage-2 distance-penalty relationship.
 
+### Tennessee Eastman Process (TEP)
+
+To evaluate domain bridging across complex chemical plant perturbations, we evaluated CVAE and CGAN models in a budget-controlled sweep ($2\%$, $6\%$, $12\%$, and $20\%$ target data with $1\times$, $5\times$, and $10\times$ amplification) across both binary detection and multiclass diagnosis tracks. The generative results directly confirmed the Stage 2 distance-penalty relationship, though performance across domain categories frequently exhibited a performance plateau.
+
+For physically aligned pairs (e.g., binary $F3 \to F9$), adding CVAE synthetic data with just a 2% target budget boosted performance from $\text{F1} = 0.6171$ to $\text{F1} = 0.6667$. The generated samples brought the source and target data closer together, cutting the transfer penalty and nearing the score of real target data. However, across many domain categories, the addition of synthetic data reached a stalemate, keeping the gap wide, showing no real improvement over the baseline, and failing to capture the target fault patterns.
+
+In the multiclass diagnostic track, synthetic generation similarly faced steep transfer limits when bridging non-aligned physical perturbation groups: transferring synthetic samples across disjoint operational categories (such as _Step Disturbances vs. Actuator Stiction_) resulted in minimal performance recovery, with target Macro-F1 remaining constrained near baseline levels ($\text{Target F1} \approx 0.2009$) due to non-overlapping feature manifolds.
 
 ### Discussion
 
@@ -118,3 +149,9 @@ The CVAE bridges the seasonal gap from a tiny budget, while the CGAN doesn't. Am
 
 - **Baseline weak results:** Due to the severe imbalance and extreme noise inherent to heavy-duty automotive telemetry, the absolute F1-Scores achieved on the source baselines remain modest (between 0.15 and 0.40). While this is sufficient to calculate a reliable transfer penalty, it highlights the limits of relying solely on standard Random Forests without advanced temporal modeling.
 - **MMD instability:** MMD failed to exhibit a statistically significant correlation with the transfer penalty, confirming results obtained also in the 3W dataset. This suggests that MMD may not be a reliable metric for predicting transferability in complex, real-world industrial datasets.
+
+#### Tennessee Eastman Process (TEP)
+
+- **Mechanism alignment vs. transfer limits:** For physically aligned failure modes (e.g., $F3 \to F9$), CVAE synthetic augmentation helped cut transfer penalties toward the real-target ceiling. Conversely, for completely disjoint mechanisms (e.g., $F6 \to F15$ with $\text{SWD} = 1.1761$), source-only transfer breaks down completely ($\text{penalty} = 1.0000$), and synthetic generation alone fails to bridge the gap, resulting in a performance stalemate near baseline levels.
+- **Multiclass diagnostic transfer:** Across TEP's physical perturbation groups, supervised in-domain models achieved strong baseline performance. However, cross-mechanism transfer triggered severe performance drops, proving that distinct physical perturbations occupy disjoint feature manifolds where synthetic data provides limited cross-domain recovery.
+- **Generative stability & distance metrics:** CGAN models suffered from adversarial mode collapse on high-dimensional 208-D continuous features, whereas CVAE benefited from latent sampling temperature scaling ($T = 2.0$). Furthermore, Sliced Wasserstein Distance ($\rho = +0.549$), Fréchet Distance ($\rho = +0.533$), and MMD ($\rho = +0.517$) reliably predicted transfer penalties across TEP domain pairs, with all 95% bootstrap confidence intervals strictly excluding zero.
